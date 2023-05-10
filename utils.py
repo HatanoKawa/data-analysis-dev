@@ -1,9 +1,11 @@
+import datetime
 import re
 import os
 import base64
 import logger_helper
 
 logger = logger_helper.get_logger()
+DATABASE_NAME = 'file-database'
 
 
 def try_get_version_hash():
@@ -31,3 +33,7 @@ def get_base_from_json(json_data):
     tk = [x for x in td]
     tk.sort()
     return td[[x for x in tk][-2]]
+
+
+def get_cur_time():
+    return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')

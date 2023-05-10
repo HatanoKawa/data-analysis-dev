@@ -5,25 +5,57 @@ import os
 
 logger = logger_helper.get_logger()
 
-# check if database exists
-if not os.path.exists(os.path.join(os.path.dirname(__file__), 'file-database')):
-    # generate sqlite file
-    logger.info('database file doesn\'t exist, an empty database file will be generated.')
-    con = sqlite3.connect('file-database')
-    cur = con.cursor()
-    cur.execute('DROP TABLE IF EXISTS file_dict')
-    cur.execute('''CREATE TABLE file_dict
-    (
-        FILE_ID         INT         PRIMARY KEY     NOT NULL,
-        SOURCE_PATH     TEXT        NOT NULL,
-        CRC             TEXT        NOT NULL,
-        UPDATE_TIME     CHAR(20)    NOT NULL,
-        VERSION_MARK    CHAR(30)    NOT NULL 
-    );''')
-    con.commit()
-    con.close()
-else:
-    logger.info('sqlite database file already exists, skip generating database file.')
+# generate sqlite file
+con = sqlite3.connect(utils.DATABASE_NAME)
+cur = con.cursor()
+cur.execute('DROP TABLE IF EXISTS table_dict')
+cur.execute('''CREATE TABLE table_dict
+(
+    FILE_ID         INTEGER     PRIMARY KEY     NOT NULL,
+    FILE_FULL_PATH  TEXT        NOT NULL,
+    SIZE            INT         NOT NULL,
+    CRC             INT         NOT NULL,
+    FILE_NAME       TEXT        NOT NULL,
+    UPDATE_TIME     CHAR(20)    NOT NULL,
+    VERSION_MARK    CHAR(30)    NOT NULL 
+);''')
+cur.execute('DROP TABLE IF EXISTS binary_dict')
+cur.execute('''CREATE TABLE binary_dict
+(
+    FILE_ID             INTEGER     PRIMARY KEY     NOT NULL,
+    FILE_FULL_PATH      TEXT        NOT NULL,
+    SOURCE_FILE_PATH    TEXT        NOT NULL,
+    SIZE                INT         NOT NULL,
+    CRC                 INT         NOT NULL,
+    BYTES               INT         NOT NULL,
+    MIDIA_TYPE          INT         NOT NULL,
+    FILE_NAME           TEXT        NOT NULL,
+    UPDATE_TIME         CHAR(20)    NOT NULL,
+    VERSION_MARK        CHAR(30)    NOT NULL 
+);''')
+cur.execute('DROP TABLE IF EXISTS bundle_dict')
+cur.execute('''CREATE TABLE bundle_dict
+(
+    FILE_ID         INTEGER     PRIMARY KEY     NOT NULL,
+    FILE_FULL_PATH  TEXT        NOT NULL,
+    SIZE            INT         NOT NULL,
+    CRC             INT         NOT NULL,
+    FILE_NAME       TEXT        NOT NULL,
+    UPDATE_TIME     CHAR(20)    NOT NULL,
+    VERSION_MARK    CHAR(30)    NOT NULL 
+);''')
+cur.execute('DROP TABLE IF EXISTS catalog_dict')
+cur.execute('''CREATE TABLE catalog_dict
+(
+    CATALOG_ID          INTEGER                                                         PRIMARY KEY     NOT NULL,
+    CATALOG_TYPE        TEXT CHECK( CATALOG_TYPE IN ('BIN', 'BUN', 'TABLE', 'MAIN') )    NOT NULL,
+    CATALOG_FULL_PATH   TEXT                                                            NOT NULL,
+    CATALOG_MD5         TEXT                                                            NOT NULL,
+    UPDATE_TIME         CHAR(20)                                                        NOT NULL,
+    VERSION_MARK        CHAR(30)                                                        NOT NULL 
+);''')
+con.commit()
+con.close()
 
 
 # check if version_hash file exists and if it's valid
