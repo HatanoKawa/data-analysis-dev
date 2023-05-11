@@ -1,5 +1,7 @@
 import logging
 import os
+import time
+
 import requests
 import utils
 import logger_helper
@@ -11,6 +13,11 @@ version_hash = utils.try_get_version_hash()
 
 logger = logger_helper.get_logger(logging.DEBUG)
 session = requests.Session()
+# session.headers.update({
+#     'user-agent': 'Dalvik/2.1.0 (Linux; U; Android 9; SM-G977N Build/LMY48Z)',
+#     "content-type": "application/json; charset=utf-8",
+#     "accept-encoding": "gzip",
+# })
 
 METADATA_TEMPLATE = utils.get_b64_data(b'aHR0cHM6Ly95b3N0YXItc2VydmVyaW5mby5ibHVlYXJjaGl2ZXlvc3Rhci5jb20ve30uanNvbg==')
 A_BUNDLE_CATALOG_TEMPLATE = utils.get_b64_data(b'e30vQW5kcm9pZC9idW5kbGVEb3dubG9hZEluZm8uanNvbg==')
@@ -65,6 +72,7 @@ def collect_binary_files(base_url: str, full_json: dict):
             con.commit()
             logger.info(f'binary file: {binary_data["fileName"]} collected.')
             success_cnt += 1
+            # time.sleep(.5)
         else:
             logger.info(f'binary file: {binary_data["fileName"]} skipped.')
             skip_cnt += 1
@@ -142,21 +150,21 @@ def collect_all_catalogs(use_local_file=False):
     con = sqlite3.connect(utils.DATABASE_NAME)
     cur = con.cursor()
     # collect main catalog
-    main_catalog_json, file_source = utils.get_newest_catalog('MAIN', cur, METADATA_TEMPLATE.format(version_hash), use_local_file)
+    main_catalog_json, file_source = utils.get_newest_catalog('MAIN', cur, METADATA_TEMPLATE.format(version_hash), session, use_local_file)
     if file_source == 'remote':
         check_and_create_catalog_file('MAIN', 'main-catalog', main_catalog_json, con)
     base_url = utils.get_base_from_json(main_catalog_json)
 
     # collect child catalogs
-    bundle_catalog_json, file_source = utils.get_newest_catalog('BUN', cur, A_BUNDLE_CATALOG_TEMPLATE.format(base_url), use_local_file)
+    bundle_catalog_json, file_source = utils.get_newest_catalog('BUN', cur, A_BUNDLE_CATALOG_TEMPLATE.format(base_url), session, use_local_file)
     if file_source == 'remote':
         check_and_create_catalog_file('BUN', 'bundle-catalog', bundle_catalog_json, con)
 
-    binary_catalog_json, file_source = utils.get_newest_catalog('BIN', cur, BINARY_CATALOG_TEMPLATE.format(base_url), use_local_file)
+    binary_catalog_json, file_source = utils.get_newest_catalog('BIN', cur, BINARY_CATALOG_TEMPLATE.format(base_url), session, use_local_file)
     if file_source == 'remote':
         check_and_create_catalog_file('BIN', 'binary-catalog', binary_catalog_json, con)
 
-    table_catalog_json, file_source = utils.get_newest_catalog('TABLE', cur, TABLE_CATALOG_TEMPLATE.format(base_url), use_local_file)
+    table_catalog_json, file_source = utils.get_newest_catalog('TABLE', cur, TABLE_CATALOG_TEMPLATE.format(base_url), session, use_local_file)
     if file_source == 'remote':
         check_and_create_catalog_file('TABLE', 'table-catalog', table_catalog_json, con)
 
@@ -166,7 +174,7 @@ def collect_all_catalogs(use_local_file=False):
 
 if __name__ == '__main__':
     if version_hash:
-        global_base_url, bundle_json, bin_json, table_json = collect_all_catalogs(use_local_file=True)
+        global_base_url, bundle_json, bin_json, table_json = collect_all_catalogs(use_local_file=False)
         collect_binary_files(global_base_url, bin_json)
         collect_table_files(global_base_url, table_json)
     else:

@@ -61,12 +61,12 @@ def get_newest_catalog_local_path(catalog_type: str, cur: sqlite3.Cursor):
         return get_json_from_file(query_res[0])
 
 
-def get_newest_catalog(catalog_type: str, cur: sqlite3.Cursor, catalog_url: str, use_local=False):
+def get_newest_catalog(catalog_type: str, cur: sqlite3.Cursor, catalog_url: str, session: requests.Session, use_local=False):
     catalog_json = None
     catalog_source = 'local'
     if use_local:
         catalog_json = get_newest_catalog_local_path(catalog_type, cur)
     if not catalog_json:
         catalog_source = 'remote'
-        catalog_json = requests.get(catalog_url).json()
+        catalog_json = session.get(catalog_url).json()
     return catalog_json, catalog_source
