@@ -148,7 +148,7 @@ def collect_all_catalogs(use_local_file=False):
     base_url = utils.get_base_from_json(main_catalog_json)
 
     # collect child catalogs
-    bundle_catalog_json, file_source = utils.get_newest_catalog('BUN', cur, A_BUNDLE_BASE_TEMPLATE.format(base_url), use_local_file)
+    bundle_catalog_json, file_source = utils.get_newest_catalog('BUN', cur, A_BUNDLE_CATALOG_TEMPLATE.format(base_url), use_local_file)
     if file_source == 'remote':
         check_and_create_catalog_file('BUN', 'bundle-catalog', bundle_catalog_json, con)
 
