@@ -22,11 +22,11 @@ BINARY_BASE_TEMPLATE = utils.get_b64_data(b'e30vTWVkaWFSZXNvdXJjZXMv')
 TABLE_CATALOG_TEMPLATE = utils.get_b64_data(b'e30vVGFibGVCdW5kbGVzL1RhYmxlQ2F0YWxvZy5qc29u')
 TABLE_BASE_TEMPLATE = utils.get_b64_data(b'e30vVGFibGVCdW5kbGVzLw==')
 
-RAW_BASE_PATH = os.path.join(os.path.dirname(__file__), 'raw', version_hash)
-BUNDLE_FILES_DIR = os.path.join(RAW_BASE_PATH, 'bundles')
-BINARY_FILES_DIR = os.path.join(RAW_BASE_PATH, 'binary')
+RAW_BASE_PATH = os.path.join(os.path.dirname(__file__), 'raw')
+BUNDLE_FILES_DIR = os.path.join(RAW_BASE_PATH, version_hash, 'bundles')
+BINARY_FILES_DIR = os.path.join(RAW_BASE_PATH, version_hash, 'binary')
+CATALOG_FILES_DIR = os.path.join(RAW_BASE_PATH, version_hash, 'catalogs')
 TABLE_FILES_DIR = os.path.join(RAW_BASE_PATH, 'table')
-CATALOG_FILES_DIR = os.path.join(RAW_BASE_PATH, 'catalogs')
 dirs = [BUNDLE_FILES_DIR, BINARY_FILES_DIR, TABLE_FILES_DIR, CATALOG_FILES_DIR]
 for d in dirs:
     os.makedirs(d, exist_ok=True)

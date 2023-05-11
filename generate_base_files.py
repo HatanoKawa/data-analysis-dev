@@ -48,7 +48,7 @@ cur.execute('DROP TABLE IF EXISTS catalog_dict')
 cur.execute('''CREATE TABLE catalog_dict
 (
     CATALOG_ID          INTEGER                                                         PRIMARY KEY     NOT NULL,
-    CATALOG_TYPE        TEXT CHECK( CATALOG_TYPE IN ('BIN', 'BUN', 'TABLE', 'MAIN') )    NOT NULL,
+    CATALOG_TYPE        TEXT CHECK( CATALOG_TYPE IN ('BIN', 'BUN', 'TABLE', 'MAIN') )   NOT NULL,
     CATALOG_FULL_PATH   TEXT                                                            NOT NULL,
     CATALOG_MD5         TEXT                                                            NOT NULL,
     UPDATE_TIME         CHAR(20)                                                        NOT NULL,
