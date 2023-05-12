@@ -9,7 +9,7 @@ import sqlite3
 
 version_hash = utils.try_get_version_hash()
 
-logger = logger_helper.get_logger(logging.DEBUG)
+logger = logger_helper.get_logger(logging.INFO)
 session = requests.Session()
 
 METADATA_TEMPLATE = utils.get_b64_data(b'aHR0cHM6Ly95b3N0YXItc2VydmVyaW5mby5ibHVlYXJjaGl2ZXlvc3Rhci5jb20ve30uanNvbg==')
@@ -36,10 +36,10 @@ def collect_bundle_files(base_url: str, full_json: dict):
     con = sqlite3.connect(utils.DATABASE_NAME)
     dl_dict = full_json[utils.get_b64_data(b'QnVuZGxlRmlsZXM=')]
     bundle_base_url = A_BUNDLE_BASE_TEMPLATE.format(base_url)
-    success_cnt = 0
-    skip_cnt = 0
+    success_cnt, skip_cnt, total_cnt, progress_cnt = 0, 0, len(dl_dict), 0
     cur = con.cursor()
     for bundle_data in dl_dict:
+        progress_cnt += 1
         table_row_data = cur.execute(
             "SELECT * FROM bundle_dict WHERE FILE_NAME=(?) AND CRC=(?)",
             (bundle_data['Name'], bundle_data['Crc'])
@@ -55,27 +55,30 @@ def collect_bundle_files(base_url: str, full_json: dict):
                  VALUES (?, ?, ?, ?, ?, ?, ?)
             ''', (None, save_path, bundle_data['Size'], bundle_data['Crc'], bundle_data['Name'], utils.get_cur_time(), version_hash))
             con.commit()
-            logger.info(f'bundle file: {bundle_data["Name"]} collected.')
+            logger.info(f'({success_cnt+skip_cnt}/{total_cnt}) bundle file: {bundle_data["Name"]} collected.')
             success_cnt += 1
         else:
             logger.debug(f'bundle file: {bundle_data["Name"]} skipped.')
             skip_cnt += 1
-    logger.debug(dl_dict)
-    logger.debug(len(dl_dict))
+    logger.info(f'Task of collecting bundle files has finished.')
+    logger.info(f'success: {success_cnt}, skipped: {skip_cnt}')
+    logger.info(''.join(['=' for _ in range(100)]))
+    con.close()
+    return success_cnt, skip_cnt, total_cnt
 
 
 def collect_binary_files(base_url: str, full_json: dict):
     con = sqlite3.connect(utils.DATABASE_NAME)
     dl_dict = full_json[utils.get_b64_data(b'VGFibGU=')]
     binary_base_url = BINARY_BASE_TEMPLATE.format(base_url)
-    success_cnt = 0
-    skip_cnt = 0
+    success_cnt, skip_cnt, total_cnt, progress_cnt = 0, 0, len(dl_dict), 0
     cur = con.cursor()
     for binary_key in dl_dict:
+        progress_cnt += 1
         binary_data = dl_dict[binary_key]
         table_row_data = cur.execute(
-            "SELECT * FROM binary_dict WHERE CRC=(?)",
-            (binary_data['Crc'], )
+            "SELECT * FROM binary_dict WHERE FILE_NAME=(?) AND CRC=(?)",
+            (binary_data['fileName'], binary_data['Crc'])
         ).fetchone()
         if not table_row_data:
             save_path = f'{BINARY_FILES_DIR}/{binary_data["path"]}'
@@ -91,30 +94,31 @@ def collect_binary_files(base_url: str, full_json: dict):
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (None, save_path, binary_data['path'], binary_data['bytes'], binary_data['Crc'], binary_data['bytes'], binary_data['mediaType'], binary_data['fileName'], utils.get_cur_time(), version_hash))
             con.commit()
-            logger.info(f'binary file: {binary_data["fileName"]} collected.')
+            logger.info(f'({success_cnt+skip_cnt}/{total_cnt}) binary file: {binary_data["fileName"]} collected.')
             success_cnt += 1
         else:
             logger.debug(f'binary file: {binary_data["fileName"]} skipped.')
             skip_cnt += 1
     logger.info(f'Task of collecting binary files has finished.')
-    logger.info(f'success count: {success_cnt}, skipped count: {skip_cnt}')
+    logger.info(f'success: {success_cnt}, skipped: {skip_cnt}')
+    logger.info(''.join(['=' for _ in range(100)]))
     con.close()
-    return success_cnt, skip_cnt, len(dl_dict)
+    return success_cnt, skip_cnt, total_cnt
 
 
 def collect_table_files(base_url: str, full_json: dict):
     con = sqlite3.connect(utils.DATABASE_NAME)
     dl_dict = full_json[utils.get_b64_data(b'VGFibGU=')]
     table_base_url = TABLE_BASE_TEMPLATE.format(base_url)
-    success_cnt = 0
-    skip_cnt = 0
+    success_cnt, skip_cnt, total_cnt, progress_cnt = 0, 0, len(dl_dict), 0
     cur = con.cursor()
     for table_name in dl_dict:
+        progress_cnt += 1
         table_data = dl_dict[table_name]
         save_path = os.path.join(TABLE_FILES_DIR, table_name)
         table_row_data = cur.execute(
-            "SELECT * FROM table_dict WHERE CRC=(?)",
-            (table_data['Crc'], )
+            "SELECT * FROM table_dict WHERE FILE_NAME=(?) AND CRC=(?)",
+            (table_data['Name'], table_data['Crc'])
         ).fetchone()
         if not table_row_data:
             logger.debug(f'collecting table: {table_name} ...')
@@ -126,15 +130,16 @@ def collect_table_files(base_url: str, full_json: dict):
                  VALUES (?, ?, ?, ?, ?, ?, ?)
             ''', (None, save_path, table_data['Size'], table_data['Crc'], table_name, utils.get_cur_time(), version_hash))
             con.commit()
-            logger.info(f'table file: {table_name} collected.')
+            logger.info(f'({success_cnt+skip_cnt}/{total_cnt}) table file: {table_name} collected.')
             success_cnt += 1
         else:
             logger.debug(f'table file: {table_name} skipped.')
             skip_cnt += 1
     logger.info(f'Task of collecting table files has finished.')
-    logger.info(f'success count: {success_cnt}, skipped count: {skip_cnt}')
+    logger.info(f'success: {success_cnt}, skipped: {skip_cnt}')
+    logger.info(''.join(['=' for _ in range(100)]))
     con.close()
-    return success_cnt, skip_cnt, len(dl_dict)
+    return success_cnt, skip_cnt, total_cnt
 
 
 def check_and_create_catalog_file(catalog_type: str, catalog_file_name: str, catalog_json: dict, con: sqlite3.Connection):
@@ -189,6 +194,7 @@ def collect_all_catalogs(use_local_file=False):
         check_and_create_catalog_file('TABLE', 'table-catalog', table_catalog_json, con)
 
     con.close()
+    logger.info(''.join(['=' for _ in range(100)]))
     return base_url, bundle_catalog_json, binary_catalog_json, table_catalog_json
 
 
@@ -198,5 +204,6 @@ if __name__ == '__main__':
         collect_bundle_files(global_base_url, bundle_json)
         collect_binary_files(global_base_url, bin_json)
         collect_table_files(global_base_url, table_json)
+        logger.info('All files have been collect.')
     else:
         logger.error('please set version hash first.')
