@@ -1,7 +1,5 @@
 import logging
 import os
-import time
-
 import requests
 import utils
 import logger_helper
@@ -13,11 +11,6 @@ version_hash = utils.try_get_version_hash()
 
 logger = logger_helper.get_logger(logging.DEBUG)
 session = requests.Session()
-# session.headers.update({
-#     'user-agent': 'Dalvik/2.1.0 (Linux; U; Android 9; SM-G977N Build/LMY48Z)',
-#     "content-type": "application/json; charset=utf-8",
-#     "accept-encoding": "gzip",
-# })
 
 METADATA_TEMPLATE = utils.get_b64_data(b'aHR0cHM6Ly95b3N0YXItc2VydmVyaW5mby5ibHVlYXJjaGl2ZXlvc3Rhci5jb20ve30uanNvbg==')
 A_BUNDLE_CATALOG_TEMPLATE = utils.get_b64_data(b'e30vQW5kcm9pZC9idW5kbGVEb3dubG9hZEluZm8uanNvbg==')
@@ -39,8 +32,36 @@ for d in dirs:
     os.makedirs(d, exist_ok=True)
 
 
-def collect_bundle_files():
-    pass
+def collect_bundle_files(base_url: str, full_json: dict):
+    con = sqlite3.connect(utils.DATABASE_NAME)
+    dl_dict = full_json[utils.get_b64_data(b'QnVuZGxlRmlsZXM=')]
+    bundle_base_url = A_BUNDLE_BASE_TEMPLATE.format(base_url)
+    success_cnt = 0
+    skip_cnt = 0
+    cur = con.cursor()
+    for bundle_data in dl_dict:
+        table_row_data = cur.execute(
+            "SELECT * FROM bundle_dict WHERE FILE_NAME=(?) AND CRC=(?)",
+            (bundle_data['Name'], bundle_data['Crc'])
+        ).fetchone()
+        if not table_row_data:
+            save_path = os.path.join(BUNDLE_FILES_DIR, bundle_data['Name'])
+            logger.debug(f'collecting bundle file: {bundle_data["Name"]} ...')
+            data = session.get(f'{bundle_base_url}{bundle_data["Name"]}').content
+            with open(save_path, 'wb') as f:
+                f.write(data)
+            cur.execute('''
+                INSERT INTO bundle_dict (FILE_ID, FILE_FULL_PATH, SIZE, CRC, FILE_NAME, UPDATE_TIME, VERSION_MARK)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (None, save_path, bundle_data['Size'], bundle_data['Crc'], bundle_data['Name'], utils.get_cur_time(), version_hash))
+            con.commit()
+            logger.info(f'bundle file: {bundle_data["Name"]} collected.')
+            success_cnt += 1
+        else:
+            logger.debug(f'bundle file: {bundle_data["Name"]} skipped.')
+            skip_cnt += 1
+    logger.debug(dl_dict)
+    logger.debug(len(dl_dict))
 
 
 def collect_binary_files(base_url: str, full_json: dict):
@@ -72,9 +93,8 @@ def collect_binary_files(base_url: str, full_json: dict):
             con.commit()
             logger.info(f'binary file: {binary_data["fileName"]} collected.')
             success_cnt += 1
-            # time.sleep(.5)
         else:
-            logger.info(f'binary file: {binary_data["fileName"]} skipped.')
+            logger.debug(f'binary file: {binary_data["fileName"]} skipped.')
             skip_cnt += 1
     logger.info(f'Task of collecting binary files has finished.')
     logger.info(f'success count: {success_cnt}, skipped count: {skip_cnt}')
@@ -109,7 +129,7 @@ def collect_table_files(base_url: str, full_json: dict):
             logger.info(f'table file: {table_name} collected.')
             success_cnt += 1
         else:
-            logger.info(f'table file: {table_name} skipped.')
+            logger.debug(f'table file: {table_name} skipped.')
             skip_cnt += 1
     logger.info(f'Task of collecting table files has finished.')
     logger.info(f'success count: {success_cnt}, skipped count: {skip_cnt}')
@@ -174,7 +194,8 @@ def collect_all_catalogs(use_local_file=False):
 
 if __name__ == '__main__':
     if version_hash:
-        global_base_url, bundle_json, bin_json, table_json = collect_all_catalogs(use_local_file=False)
+        global_base_url, bundle_json, bin_json, table_json = collect_all_catalogs(use_local_file=True)
+        collect_bundle_files(global_base_url, bundle_json)
         collect_binary_files(global_base_url, bin_json)
         collect_table_files(global_base_url, table_json)
     else:
