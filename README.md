@@ -5,16 +5,24 @@ The content related to this repo may involve the actual interests of certain com
 ## Usage
 ***IMPORTANT: create a branch before you start to use, if you want to see diff with git***
 ### init
-1. run generate_base_files.py
+1. run generate_base_files.py to create database and example  file
 
 ### collect data
 1. change version_hash (if you don't know how to get version hash, use VNET to catch it)
-2. run
+2. run collect_data.py, and if the process suspend frequently, change proxy settings in options.json
 
-### operate data
+### handle bundle data
+1. run handle_bundle_files.py
+
+### handle binary data
+1. run organize_binary_files.py, and it will automatically create symlink folders.
+
+### handle table data
 1. create dump.cs (if you don't know how to get dump.cs, see this repo [il2CppDumper](https://github.com/Perfare/Il2CppDumper))
 2. run generate_struct.py
-3. run operate_data.py
+3. run handle_table_files.py
+
+*scripts handling data don't depend on database*
 
 binary files will be placed by version, others can be diffed with git
 
