@@ -17,6 +17,7 @@ The content related to this repo may involve the actual interests of certain com
 1. run handle_bundle_files.py
 
 *The handle_bundle_files.py script still has many issues, but since I'm not particularly interested in AB assets, I won't make any further adjustments to this script in the short term (and maybe never). If anyone is interested in this and has any suggestions, or would like to contribute code, please feel free to do so.*
+*If you need data immediately, use [AssetStudioGUI](https://github.com/Perfare/AssetStudio)(archived) or [AssetRipper](https://github.com/AssetRipper/AssetRipper)(still under updating) to get what you want.*
 
 #### handle table data
 1. create dump.cs (if you don't know how to get dump.cs, see this repo [il2CppDumper](https://github.com/Perfare/Il2CppDumper))
@@ -25,10 +26,10 @@ The content related to this repo may involve the actual interests of certain com
 4. commit all changes and write version_hash and update time in commit message to show diffrences between different versions 
 
 #### handle binary data
-**need to run handle_table_data.py first**
+**need to run handle_table_data.py first to enable character name translator**
 1. run handle_binary_files.py, and it will automatically create symlink folders.
 
-binary files will be placed by version, others can be diffed with git
+binary files will be grouped by version, others can be diffed with git
 
 ## Libs
 - [flat-compile](https://github.com/google/flatbuffers)
