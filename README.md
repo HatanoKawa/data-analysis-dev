@@ -11,18 +11,22 @@ The content related to this repo may involve the actual interests of certain com
 1. change version_hash (if you don't know how to get version hash, use VNET to catch it)
 2. run collect_data.py, and if the process suspend frequently, change proxy settings in options.json
 
-### handle bundle data
+### handle data
+*scripts handling data don't depend on database*
+#### handle bundle data
 1. run handle_bundle_files.py
 
-### handle binary data
-1. run organize_binary_files.py, and it will automatically create symlink folders.
+*The handle_bundle_files.py script still has many issues, but since I'm not particularly interested in AB assets, I won't make any further adjustments to this script in the short term (and maybe never). If anyone is interested in this and has any suggestions, or would like to contribute code, please feel free to do so.*
 
-### handle table data
+#### handle table data
 1. create dump.cs (if you don't know how to get dump.cs, see this repo [il2CppDumper](https://github.com/Perfare/Il2CppDumper))
 2. run generate_struct.py
 3. run handle_table_files.py
+4. commit all changes and write version_hash and update time in commit message to show diffrences between different versions 
 
-*scripts handling data don't depend on database*
+#### handle binary data
+**need to run handle_table_data.py first**
+1. run handle_binary_files.py, and it will automatically create symlink folders.
 
 binary files will be placed by version, others can be diffed with git
 

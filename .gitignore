@@ -162,3 +162,8 @@ cython_debug/
 version_hash
 file-database
 raw/
+bundle_files_output/
+binary_files_output/
+table_files_output/
+
+test/
