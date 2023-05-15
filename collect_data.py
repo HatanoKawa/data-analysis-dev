@@ -66,39 +66,45 @@ def collect_bundle_files(base_url: str, full_json: dict):
     con.close()
     return success_cnt, skip_cnt, total_cnt
 
+def cmp_table_row_data(all_data):
+    def no_current_binary_key(item):
+        binary_data = item[1]
+        for line in all_data:
+            crc = line[4]
+            filename = line[7]
+            if crc == binary_data['Crc'] and filename == binary_data['fileName']:
+                return False
+        return True
+    return no_current_binary_key
 
 def collect_binary_files(base_url: str, full_json: dict):
     con = sqlite3.connect(utils.DATABASE_NAME)
     dl_dict = full_json[utils.get_b64_data(b'VGFibGU=')]
     binary_base_url = BINARY_BASE_TEMPLATE.format(base_url)
-    success_cnt, skip_cnt, total_cnt, progress_cnt = 0, 0, len(dl_dict), 0
     cur = con.cursor()
-    for binary_key in dl_dict:
+    all_data = cur.execute("SELECT * FROM binary_dict").fetchall()
+    rest_binary_data = list(filter(cmp_table_row_data(all_data), dl_dict.items()))
+    success_cnt, skip_cnt, total_cnt, progress_cnt = 0, len(dl_dict) - len(rest_binary_data), len(rest_binary_data), 0
+
+    for item in rest_binary_data:
         progress_cnt += 1
-        binary_data = dl_dict[binary_key]
-        table_row_data = cur.execute(
-            "SELECT * FROM binary_dict WHERE FILE_NAME=(?) AND CRC=(?)",
-            (binary_data['fileName'], binary_data['Crc'])
-        ).fetchone()
-        if not table_row_data:
-            save_path = f'{BINARY_FILES_DIR}/{binary_data["path"]}'
-            save_dir = os.path.dirname(save_path)
-            if not os.path.exists(save_dir):
-                os.makedirs(os.path.dirname(save_path), exist_ok=True)
-            logger.debug(f'collecting binary file: {binary_data["fileName"]} ...')
-            data = session.get(f'{binary_base_url}{binary_data["path"]}').content
-            with open(save_path, 'wb') as f:
-                f.write(data)
-            cur.execute('''
-                INSERT INTO binary_dict (FILE_ID, FILE_FULL_PATH, SOURCE_FILE_PATH, SIZE, CRC, BYTES, MIDIA_TYPE, FILE_NAME, UPDATE_TIME, VERSION_MARK)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (None, save_path, binary_data['path'], binary_data['bytes'], binary_data['Crc'], binary_data['bytes'], binary_data['mediaType'], binary_data['fileName'], utils.get_cur_time(), version_hash))
-            con.commit()
-            logger.info(f'({success_cnt+skip_cnt}/{total_cnt}) binary file: {binary_data["fileName"]} collected.')
-            success_cnt += 1
-        else:
-            logger.debug(f'binary file: {binary_data["fileName"]} skipped.')
-            skip_cnt += 1
+        binary_data = item[1]
+        save_path = f'{BINARY_FILES_DIR}/{binary_data["path"]}'
+        save_dir = os.path.dirname(save_path)
+        if not os.path.exists(save_dir):
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        logger.debug(f'collecting binary file: {binary_data["fileName"]} ...')
+        data = session.get(f'{binary_base_url}{binary_data["path"]}').content
+        with open(save_path, 'wb') as f:
+            f.write(data)
+        cur.execute('''
+            INSERT INTO binary_dict (FILE_ID, FILE_FULL_PATH, SOURCE_FILE_PATH, SIZE, CRC, BYTES, MIDIA_TYPE, FILE_NAME, UPDATE_TIME, VERSION_MARK)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (None, save_path, binary_data['path'], binary_data['bytes'], binary_data['Crc'], binary_data['bytes'], binary_data['mediaType'], binary_data['fileName'], utils.get_cur_time(), version_hash))
+        con.commit()
+        logger.info(f'({success_cnt+skip_cnt}/{total_cnt}) binary file: {binary_data["fileName"]} collected.')
+        success_cnt += 1
+
     logger.info(f'Task of collecting binary files has finished.')
     logger.info(f'success: {success_cnt}, skipped: {skip_cnt}')
     logger.info(''.join(['=' for _ in range(100)]))
