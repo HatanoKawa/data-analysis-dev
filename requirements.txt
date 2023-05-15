@@ -1,0 +1,3 @@
+requests~=2.30.0
+colorlog~=6.7.0
+UnityPy~=1.9.28
