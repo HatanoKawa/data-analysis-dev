@@ -1,4 +1,5 @@
-# A project can be used to do data analysis jobs
+# A project can collect and handle data
+binary files will be grouped by version, others can be diffed with git
 
 ## Disclaimer
 The content related to this repo may involve the actual interests of certain companies. This repo is only used for mobile application security research and learning. Do not use this tool for commercial or illegal purposes, or publish anything related to 非公開情報 in a public place (such as SNS). If you are willing to continue reading, please promise to take full responsibility for your actions.
@@ -20,16 +21,21 @@ The content related to this repo may involve the actual interests of certain com
 *If you want data immediately, use [AssetRipper](https://github.com/AssetRipper/AssetRipper)(**recommend**, still under maintenance) or [AssetStudioGUI](https://github.com/Perfare/AssetStudio)(archived) or [UtinyRipper](https://github.com/mafaca/UtinyRipper)(seems to be out of maintenance) to get what you want.*
 
 #### handle table data
-1. create dump.cs (if you don't know how to get dump.cs, see this repo [il2CppDumper](https://github.com/Perfare/Il2CppDumper))
+1. create and overwrite ./dump.cs (if you don't know how to get dump.cs, see this repo [il2CppDumper](https://github.com/Perfare/Il2CppDumper))
 2. run generate_struct.py
 3. run handle_table_files.py
-4. commit all changes and write version_hash and update time in commit message to show diffrences between different versions 
+4. (just need to do once) remove line 67 in file .gitignore ('output/table_files/') to let git tracks table data
+5. commit all changes then add version_hash and update time to commit message to show differences between different versions 
+
+Some other things to be aware of:
+> - **MANY codes are borrowed from K0lb3's repo, really thanks to him.**
+> - ***IMPORTANT WARNING! There are significant differences in how different versions of flatc.exe handle field names and other logic. Directly switching to a different version may lead to crashes. This project utilizes version v23.3.3.***
+> - Due to the logic of field name conversion in the new version of flatc.exe, I had to adapt some fields by performing conversions. As a result, certain field names may appear somewhat unusual. This issue is not considered critical, and I may or may not address it in a later fix.
+
 
 #### handle binary data
 **need to run handle_table_data.py first to enable character name translator**
 1. run handle_binary_files.py, and it will automatically create symlink folders.
-
-binary files will be grouped by version, others can be diffed with git
 
 ## Libs
 - [flat-compile](https://github.com/google/flatbuffers)
