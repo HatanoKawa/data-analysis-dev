@@ -7,8 +7,8 @@ ROOT_DIR = os.path.join(os.path.dirname(__file__))
 FLATC_PATH = os.path.join(os.path.dirname(__file__), 'libs', 'flatc.exe')
 FBS_PATH = os.path.join(os.path.dirname(__file__), 'data-struct.fbs')
 
-
-duplicate_keys_set = set([])
+special_key_list = ['From']
+duplicate_keys_set = set(special_key_list)
 def convert_continuous_uppercase(string):
     pattern = r'[A-Z]{2,}'
     matches = re.findall(pattern, string)
@@ -17,7 +17,6 @@ def convert_continuous_uppercase(string):
         string = string.replace(match, converted)
 
     if string in duplicate_keys_set:
-        print('重复key')
         return f'{string}_'
     return string
 
@@ -27,17 +26,6 @@ struct_re = re.compile(r'''struct ([^{]*) : [^{]*IFlatbufferObject[^{]*
 (.+?)
 }''', re.S)
 struct_property_re = re.compile(r'''public (.+) (.+?) \{ get; }''', re.M)
-
-
-def camel_case_to_lower_case(camel_case_string):
-    # 使用正则表达式将大写字母前面插入下划线，并将字符串转换为小写
-    converted_string = re.sub(r'([A-Z])', r'_\1', camel_case_string).lower()
-
-    # 如果字符串以下划线开头，则去除开头的下划线
-    if converted_string.startswith('_'):
-        converted_string = converted_string[1:]
-
-    return converted_string
 
 
 def get_struct_dict(source_data):
@@ -66,32 +54,18 @@ def get_struct_dict(source_data):
         if cur_struct:
             struct_dict[struct_name] = cur_struct
 
-    # rename duplicate key
     for struct_key in struct_dict:
-        duplicate_keys = []
-        for struct_field_key in struct_dict[struct_key]:
-            if struct_field_key == 'BubbleType':
-                print('BubbleType')
-            # if struct_field_key in struct_dict or struct_field_key == 'From':
-            if struct_field_key == 'From':
-                print(f'duplicate key: {struct_field_key}')
-                duplicate_keys.append(struct_field_key)
-        for duplicate_key in duplicate_keys:
-            struct_dict[struct_key][f'{duplicate_key}_'] = struct_dict[struct_key][duplicate_key]
-            del struct_dict[struct_key][duplicate_key]
-        duplicate_keys_set.update(duplicate_keys)
+        for special_key in special_key_list:
+            if special_key in struct_dict[struct_key]:
+                struct_dict[struct_key][f'{special_key}_'] = struct_dict[struct_key][special_key]
+                del struct_dict[struct_key][special_key]
     return struct_dict
 
 
 def write_structs_to_fbs(structs: dict, enums: dict, fbs_file: TextIO):
-    print(structs)
     for key, struct in structs.items():
         fbs_file.write(f"table {key}{{\n")
         for pname, ptype in struct.items():
-            if (pname == 'MoveEnd'):
-                print('moveend here')
-                print(pname)
-                print(ptype)
             if ptype[0] == "[":
                 typ = ptype[1:-1]
                 if typ.endswith("Length"):
@@ -99,11 +73,9 @@ def write_structs_to_fbs(structs: dict, enums: dict, fbs_file: TextIO):
                 if typ not in structs and typ not in enums and typ not in types:
                     continue
                 # if pname == typ:
-                #     print('dup 01')
                 #     duplicate_keys_set.add(pname)
                 #     pname += "_"
             if pname in structs:
-                print('dup 02')
                 duplicate_keys_set.add(pname)
                 pname += '_'
             fbs_file.write(f"    {pname}: {ptype};\n")
@@ -138,9 +110,7 @@ def get_enum_dict(source_data):
 
 
 def write_enums_to_fbs(enums: dict, fbs_file: TextIO):
-    # print(enums)
     for name, enum in enums.items():
-        # print(f'{name}: {enum}')
         fbs_file.write(
             "enum %s: %s{\n    %s\n}\n\n"
             % (
