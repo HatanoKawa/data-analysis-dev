@@ -3,3 +3,4 @@ colorlog~=6.7.0
 UnityPy~=1.9.28
 xxhash~=3.2.0
 pycryptodome~=3.17
+flatbuffers~=23.5.9
