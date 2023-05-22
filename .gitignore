@@ -162,8 +162,12 @@ cython_debug/
 version_hash
 file-database
 raw/
-bundle_files_output/
-binary_files_output/
-table_files_output/
+output/bundle_files/
+output/binary_files/
+output/table_files/
+table_struct/
+data-struct.fbs
+dump.cs
+FlatData/
 
 test/

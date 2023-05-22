@@ -12,7 +12,7 @@ def handle_bundle_files():
     for version_hash, source_version_path, output_version_path in [
         (version_hash,
          os.path.join(os.path.dirname(__file__), 'raw', version_hash, 'bundles'),
-         os.path.join(os.path.dirname(__file__), 'bundle_files_output', version_hash))
+         os.path.join(os.path.dirname(__file__), 'output', 'bundle_files', version_hash))
         for version_hash in os.listdir(os.path.join(os.path.dirname(__file__), 'raw'))
         if re.match(r'^r[0-9]{2}_[0-9a-zA-Z]{20}$', version_hash)
         and os.path.exists(os.path.join(os.path.dirname(__file__), 'raw', version_hash, 'bundles'))
