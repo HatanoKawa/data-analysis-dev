@@ -60,7 +60,7 @@ def collect_bundle_files(base_url: str, full_json: dict):
 
     def dl_single_bundle_file(bundle_data):
         nonlocal success_cnt, skip_cnt, progress_cnt
-        progress_cnt += 1
+        progress_cnt, local_progress_cnt = (progress_cnt + 1, ) * 2
         local_file_path: str = all_database_dict.get(bundle_data['Crc'])
         if not local_file_path or not os.path.exists(local_file_path):
             repair_mode = bool(local_file_path)
@@ -78,7 +78,7 @@ def collect_bundle_files(base_url: str, full_json: dict):
                       utils.get_cur_time(), version_hash))
                 thread_conn.commit()
                 thread_conn.close()
-            logger.info(f'({progress_cnt}/{total_cnt}) bundle file: {bundle_data["Name"]} {"repaired" if repair_mode else "collected"}.')
+            logger.info(f'({local_progress_cnt}/{total_cnt}) bundle file: {bundle_data["Name"]} {"repaired" if repair_mode else "collected"}.')
             success_cnt += 1
         else:
             logger.debug(f'bundle file: {bundle_data["Name"]} skipped.')
