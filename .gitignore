@@ -170,4 +170,6 @@ data-struct.fbs
 dump.cs
 FlatData/
 
+# debug folders
 test/
+raw_backup/
