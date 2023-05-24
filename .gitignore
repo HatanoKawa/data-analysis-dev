@@ -161,6 +161,7 @@ cython_debug/
 
 version_hash
 file-database
+file-database-journal
 raw/
 output/bundle_files/
 output/binary_files/
@@ -170,4 +171,6 @@ data-struct.fbs
 dump.cs
 FlatData/
 
+# debug folders
 test/
+raw_backup/
