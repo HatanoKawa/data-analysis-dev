@@ -161,6 +161,7 @@ cython_debug/
 
 version_hash
 file-database
+file-database-journal
 raw/
 output/bundle_files/
 output/binary_files/

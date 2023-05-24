@@ -95,38 +95,46 @@ def collect_bundle_files(base_url: str, full_json: dict):
 
 def collect_binary_files(base_url: str, full_json: dict):
     con = sqlite3.connect(utils.DATABASE_NAME)
-    dl_dict = full_json[utils.get_b64_data(b'VGFibGU=')]
+    dl_dict: dict = full_json[utils.get_b64_data(b'VGFibGU=')]
     binary_base_url = BINARY_BASE_TEMPLATE.format(base_url)
     cur = con.cursor()
     all_database_dict = {binary_crc: binary_full_path for binary_crc, binary_full_path
                          in cur.execute("SELECT CRC, FILE_FULL_PATH FROM binary_dict").fetchall()}
     success_cnt, skip_cnt, total_cnt, progress_cnt = 0, 0, len(dl_dict), 0
 
-    for binary_key, binary_data in dl_dict.items():
-        progress_cnt += 1
+    def dl_single_binary_file(binary_data):
+        nonlocal progress_cnt, success_cnt, skip_cnt
+        progress_cnt, local_progress_cnt = (progress_cnt + 1, ) * 2
         local_file_path = all_database_dict.get(binary_data['Crc'])
         if not local_file_path or not os.path.exists(local_file_path):
-            save_path = f'{BINARY_FILES_DIR}/{binary_data["path"]}' if not local_file_path else local_file_path
+            repair_mode = bool(local_file_path)
+            save_path = local_file_path if repair_mode else f'{BINARY_FILES_DIR}/{binary_data["path"]}'
             save_dir = os.path.dirname(save_path)
             if not os.path.exists(save_dir):
                 os.makedirs(os.path.dirname(save_path), exist_ok=True)
-            logger.debug(f'{"collecting" if not local_file_path else "repairing"} binary file: {binary_data["fileName"]} ...')
+            logger.debug(f'{"repairing" if repair_mode else "collecting"} binary file: {binary_data["fileName"]} ...')
             logger.debug(f'from url: {binary_base_url}{binary_data["path"]}')
             data = session.get(f'{binary_base_url}{binary_data["path"]}').content
             with open(save_path, 'wb') as f:
                 f.write(data)
-            cur.execute('''
-                INSERT INTO binary_dict (FILE_ID, FILE_FULL_PATH, SOURCE_FILE_PATH, SIZE, CRC, BYTES, MIDIA_TYPE, FILE_NAME, UPDATE_TIME, VERSION_MARK)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (None, save_path, binary_data['path'], binary_data['bytes'], binary_data['Crc'], binary_data['bytes'],
-                  binary_data['mediaType'], binary_data['fileName'], utils.get_cur_time(), version_hash))
-            con.commit()
+            if not repair_mode:
+                thread_conn = get_sqlite_conn()
+                thread_conn.execute('''
+                    INSERT INTO binary_dict (FILE_ID, FILE_FULL_PATH, SOURCE_FILE_PATH, SIZE, CRC, BYTES, MIDIA_TYPE, FILE_NAME, UPDATE_TIME, VERSION_MARK)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (None, save_path, binary_data['path'], binary_data['bytes'], binary_data['Crc'], binary_data['bytes'],
+                      binary_data['mediaType'], binary_data['fileName'], utils.get_cur_time(), version_hash))
+                thread_conn.commit()
+                thread_conn.close()
             logger.info(
-                f'({progress_cnt}/{total_cnt}) binary file: {binary_data["fileName"]} {"collected" if not local_file_path else "repaired"}.')
+                f'({progress_cnt}/{total_cnt}) binary file: {binary_data["fileName"]} {"repaired" if repair_mode else "collected"}.')
             success_cnt += 1
         else:
             logger.debug(f'binary file: {binary_data["fileName"]} skipped.')
             skip_cnt += 1
+
+    with futures.ThreadPoolExecutor(FUTURE_WORKERS_CNT) as executor:
+        executor.map(dl_single_binary_file, dl_dict.values())
 
     logger.info(f'Task of collecting binary files has finished.')
     logger.info(f'success: {success_cnt}, skipped: {skip_cnt}')
@@ -234,7 +242,7 @@ def collect_all_catalogs(use_local_file=False):
 
 if __name__ == '__main__':
     if version_hash:
-        global_base_url, bundle_json, bin_json, table_json = collect_all_catalogs(use_local_file=True)
+        global_base_url, bundle_json, bin_json, table_json = collect_all_catalogs(use_local_file=False)
         collect_bundle_files(global_base_url, bundle_json)
         collect_binary_files(global_base_url, bin_json)
         collect_table_files(global_base_url, table_json)
